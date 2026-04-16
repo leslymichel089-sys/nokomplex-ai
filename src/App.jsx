@@ -580,9 +580,9 @@ useEffect(() => {
 
               {/* Message contextuel */}
               <p style={{ fontSize:12, color:'#64748b', marginTop:6, lineHeight:1.5 }}>
-                {btStatus === 'idle'          && 'Recherche d'appareils Bluetooth à proximité'}
+                {btStatus === 'idle'          && "Recherche d'appareils Bluetooth à proximité"}
                 {btStatus === 'connecting'    && 'Sélectionnez votre appareil dans la liste...'}
-                {btStatus === 'connected'     && `Connecté à ${btDevice?.name || 'l'appareil'}. Prêt à transférer.`}
+                {btStatus === 'connected'     && `Connecté à ${btDevice?.name || "l'appareil"}. Prêt à transférer.`}
                 {btStatus === 'sending'       && 'Transfert du chat en cours...'}
                 {btStatus === 'sent'          && 'Chat transféré avec succès !'}
                 {btStatus === 'error'         && t.btError}
