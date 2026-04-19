@@ -176,12 +176,54 @@ export default function App() {
     return () => clearInterval(timer);
   }, []);
 
-  // ── Météo ─────────────────────────────────────────────────────
+  // ── Météo via GPS puis fallback IP ───────────────────────────
   useEffect(() => {
-    fetch('/.netlify/functions/weather').then(r => r.json()).then(setWeather)
-      .catch(() => fetch('https://ipapi.co/json/').then(r => r.json())
-        .then(d => setWeather({ temp:'--', city: d.city||'', condition:'' }))
-        .catch(() => {}));
+    const fetchWeatherByCoords = (lat, lon, city) => {
+      const apiKey = process.env.REACT_APP_OPENWEATHER_KEY;
+      if (apiKey) {
+        fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric&lang=fr`)
+          .then(r => r.json())
+          .then(d => setWeather({
+            temp: `${Math.round(d.main.temp)}°C`,
+            city: city || d.name,
+            condition: d.weather?.[0]?.description || ''
+          }))
+          .catch(() => setWeather({ temp: '--', city, condition: '' }));
+      } else {
+        setWeather({ temp: '--', city, condition: '' });
+      }
+    };
+
+    // Étape 1 : GPS du navigateur (le plus précis)
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          const { latitude, longitude } = pos.coords;
+          // Reverse geocoding pour obtenir le nom de la ville
+          fetch(`https://nominatim.openstreetmap.org/reverse?lat=${latitude}&lon=${longitude}&format=json`)
+            .then(r => r.json())
+            .then(d => {
+              const city = d.address?.city || d.address?.town || d.address?.village || d.address?.county || '';
+              fetchWeatherByCoords(latitude, longitude, city);
+            })
+            .catch(() => fetchWeatherByCoords(latitude, longitude, ''));
+        },
+        // Étape 2 : fallback sur IP si GPS refusé
+        () => {
+          fetch('/.netlify/functions/weather').then(r => r.json()).then(setWeather)
+            .catch(() => fetch('https://ipapi.co/json/').then(r => r.json())
+              .then(d => setWeather({ temp: '--', city: d.city || '', condition: '' }))
+              .catch(() => {}));
+        },
+        { timeout: 5000, maximumAge: 300000 }
+      );
+    } else {
+      // Pas de GPS disponible — fallback IP
+      fetch('/.netlify/functions/weather').then(r => r.json()).then(setWeather)
+        .catch(() => fetch('https://ipapi.co/json/').then(r => r.json())
+          .then(d => setWeather({ temp: '--', city: d.city || '', condition: '' }))
+          .catch(() => {}));
+    }
   }, []);
 
   // ── Persistance ───────────────────────────────────────────────
