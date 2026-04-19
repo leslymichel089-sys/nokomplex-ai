@@ -164,6 +164,7 @@ export default function App() {
   const [btStatus, setBtStatus]     = useState('idle'); // idle | connecting | connected | sending | sent | error | unsupported
   const [btDevice, setBtDevice]     = useState(null);
   const [showBtModal, setShowBtModal] = useState(false);
+  const [showUpgradeModal, setShowUpgradeModal] = useState(false);
   const bottomRef                   = useRef(null);
   const fileInputRef                = useRef(null);
   const avatarInputRef              = useRef(null);
@@ -261,9 +262,14 @@ export default function App() {
   }, []);
 
 useEffect(() => {
-    if (messages.length === 0) {
-      setCS(prev => ({ ...prev, messages: [{ role:'ai', content: LANGUAGES[lang].welcome, id:'welcome', type:'text' }] }));
-    }
+    // Traduit automatiquement le message de bienvenue quand la langue change
+    setCS(prev => {
+      const msgs = prev.messages;
+      if (msgs.length === 0 || (msgs.length === 1 && msgs[0].id === 'welcome')) {
+        return { ...prev, messages: [{ role:'ai', content: LANGUAGES[lang].welcome, id:'welcome', type:'text' }] };
+      }
+      return prev;
+    });
   }, [lang]);
 
   // ── Ajouter un message ────────────────────────────────────────
@@ -498,14 +504,14 @@ useEffect(() => {
         {/* Gauche: heure + météo */}
         <div style={{ display:'flex', gap:10, alignItems:'center', minWidth:120 }}>
           <div>
-            <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:12, color:'#334155', fontWeight:600 }}>
-              <Clock size={11} color="#0ea5e9" />{time.toLocaleTimeString(userLocale)}
+            <div style={{ display:'flex', alignItems:'center', gap:4, fontSize:15, color:'#1e293b', fontWeight:700 }}>
+              <Clock size={14} color="#0ea5e9" />{time.toLocaleTimeString(userLocale)}
             </div>
-            <div style={{ fontSize:10, color:'#94a3b8' }}>{time.toLocaleDateString(userLocale)}</div>
+            <div style={{ fontSize:12, color:'#64748b', fontWeight:500 }}>{time.toLocaleDateString(userLocale)}</div>
           </div>
           {weather.city && (
-            <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:10, color:'#0284c7', background:'#e0f2fe', padding:'2px 8px', borderRadius:20 }}>
-              <CloudSun size={11} />{weather.city}{weather.temp!=='--'?` · ${weather.temp}`:''}
+            <div style={{ display:'flex', alignItems:'center', gap:3, fontSize:13, color:'#0284c7', fontWeight:700, background:'#e0f2fe', padding:'5px 12px', borderRadius:20 }}>
+              <CloudSun size={14} />{weather.city}{weather.temp!=='--'?` · ${weather.temp}`:''}
             </div>
           )}
         </div>
@@ -523,7 +529,7 @@ useEffect(() => {
               <Image size={8} color="white" />
             </div>
           </div>
-          <div style={{ fontWeight:900, fontSize:11, letterSpacing:1, color:'#0ea5e9', lineHeight:1.1, textAlign:'center' }}>
+          <div style={{ fontWeight:900, fontSize:15, letterSpacing:1.5, color:'#0ea5e9', lineHeight:1.2, textAlign:'center' }}>
             NO KOMPLEX AI-PRODUCTOR
           </div>
           <input ref={avatarInputRef} type="file" accept="image/*" style={{ display:'none' }} onChange={handleAvatarChange} />
@@ -532,7 +538,7 @@ useEffect(() => {
         {/* Droite: langues */}
         <div style={{ display:'flex', background:'#f1f5f9', borderRadius:20, padding:2, minWidth:120, justifyContent:'flex-end' }}>
           {Object.keys(LANGUAGES).map(l => (
-            <button key={l} onClick={() => setLang(l)} style={{ padding:'3px 8px', borderRadius:20, fontSize:10, fontWeight:600, border:'none', cursor:'pointer', transition:'all .2s', background: lang===l?'#0ea5e9':'transparent', color: lang===l?'white':'#64748b' }}>{l.toUpperCase()}</button>
+            <button key={l} onClick={() => setLang(l)} style={{ padding:'5px 11px', borderRadius:20, fontSize:13, fontWeight:700, border:'none', cursor:'pointer', transition:'all .2s', background: lang===l?'#0ea5e9':'transparent', color: lang===l?'white':'#64748b' }}>{l.toUpperCase()}</button>
           ))}
         </div>
       </header>
@@ -580,6 +586,53 @@ useEffect(() => {
                 <span style={{ fontSize:11, color:'#94a3b8' }}>{s.messages.length} messages</span>
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* ── MODAL UPGRADE ── */}
+      {showUpgradeModal && (
+        <div style={{ position:'fixed', inset:0, zIndex:60, background:'rgba(0,0,0,0.5)', display:'flex', alignItems:'center', justifyContent:'center', padding:16 }}>
+          <div style={{ background:'white', borderRadius:20, padding:28, maxWidth:420, width:'100%', boxShadow:'0 12px 48px rgba(0,0,0,0.25)' }}>
+            <div style={{ textAlign:'center', marginBottom:20 }}>
+              <div style={{ width:64, height:64, borderRadius:'50%', background:'linear-gradient(135deg,#fbbf24,#f59e0b)', display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 12px' }}>
+                <Crown size={30} color="white" />
+              </div>
+              <h2 style={{ fontSize:22, fontWeight:900, color:'#0f172a', marginBottom:4 }}>Choisissez votre plan</h2>
+              <p style={{ fontSize:14, color:'#64748b', fontWeight:500 }}>Plan actuel : {TIERS[plan].label}</p>
+            </div>
+
+            {/* Plan PRO */}
+            <div style={{ background:'#eff6ff', border:'2px solid #0ea5e9', borderRadius:14, padding:18, marginBottom:12 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                <div>
+                  <h3 style={{ fontSize:18, fontWeight:800, color:'#0ea5e9' }}>Plan Pro</h3>
+                  <p style={{ fontSize:13, color:'#475569', fontWeight:600 }}>100 messages / session</p>
+                </div>
+                <div style={{ fontSize:22, fontWeight:900, color:'#0ea5e9' }}>$19<span style={{ fontSize:12, color:'#64748b' }}>/mois</span></div>
+              </div>
+              <button onClick={() => { setShowUpgradeModal(false); handleUpgrade('PRO'); }} disabled={plan==='PRO'} style={{ width:'100%', background: plan==='PRO'?'#e2e8f0':'#0ea5e9', color: plan==='PRO'?'#64748b':'white', border:'none', borderRadius:10, padding:'11px', fontSize:14, fontWeight:800, cursor: plan==='PRO'?'default':'pointer' }}>
+                {plan==='PRO' ? '✓ Plan actuel' : 'Passer au Pro'}
+              </button>
+            </div>
+
+            {/* Plan ELITE */}
+            <div style={{ background:'#fffbeb', border:'2px solid #f59e0b', borderRadius:14, padding:18, marginBottom:16 }}>
+              <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:10 }}>
+                <div>
+                  <h3 style={{ fontSize:18, fontWeight:800, color:'#d97706' }}>Plan Élite ⭐</h3>
+                  <p style={{ fontSize:13, color:'#475569', fontWeight:600 }}>Messages illimités + sans branding</p>
+                </div>
+                <div style={{ fontSize:22, fontWeight:900, color:'#d97706' }}>$49<span style={{ fontSize:12, color:'#64748b' }}>/mois</span></div>
+              </div>
+              <button onClick={() => { setShowUpgradeModal(false); handleUpgrade('ELITE'); }} disabled={plan==='ELITE'} style={{ width:'100%', background: plan==='ELITE'?'#e2e8f0':'linear-gradient(135deg,#fbbf24,#f59e0b)', color: plan==='ELITE'?'#64748b':'white', border:'none', borderRadius:10, padding:'11px', fontSize:14, fontWeight:800, cursor: plan==='ELITE'?'default':'pointer' }}>
+                {plan==='ELITE' ? '✓ Plan actuel' : 'Passer à l\'Élite'}
+              </button>
+            </div>
+
+            <button onClick={() => setShowUpgradeModal(false)} style={{ width:'100%', background:'#f1f5f9', color:'#475569', border:'none', borderRadius:12, padding:'11px', fontSize:14, fontWeight:700, cursor:'pointer' }}>
+              Fermer
+            </button>
           </div>
         </div>
       )}
@@ -764,7 +817,7 @@ useEffect(() => {
             <div style={{ position:'relative', maxWidth:'82%', padding:'12px 16px',
               borderRadius: m.role==='user'?'18px 18px 4px 18px':'18px 18px 18px 4px',
               background: m.role==='user'?'linear-gradient(135deg,#0ea5e9,#0284c7)':'white',
-              color: m.role==='user'?'white':'#1e293b', fontSize:14, lineHeight:1.6,
+              color: m.role==='user'?'white':'#1e293b', fontSize:16, fontWeight:500, lineHeight:1.6,
               boxShadow:'0 2px 8px rgba(0,0,0,0.08)',
               border: m.role==='ai'?'1px solid #d1dae8':'none',
               cursor: selectMode?'pointer':'default',
@@ -817,9 +870,9 @@ useEffect(() => {
             { icon:<Copy size={12}/>, label:t.copyAll, action:copyAll },
             { icon:<CheckSquare size={12}/>, label:t.selectMode, action:() => setSelectMode(v=>!v), active: selectMode },
             { icon:<Trash2 size={12}/>, label:t.clear, action:() => setCS(prev=>({...prev,messages:[]})) },
-            { icon:<Crown size={12}/>, label:t.upgrade, action:() => handleUpgrade(plan==='FREE'?'PRO':'ELITE'), gold:true },
+            { icon:<Crown size={14}/>, label:t.upgrade, action:() => setShowUpgradeModal(true), gold:true },
           ].map((btn,i) => (
-            <button key={i} onClick={btn.action} style={{ display:'flex', alignItems:'center', gap:4, background: btn.gold?'#fffbeb': btn.bt&&btStatus==='connected'?'#dcfce7': btn.active?'#eff6ff':'#f1f5f9', border:`1px solid ${btn.gold?'#fde68a':btn.bt&&btStatus==='connected'?'#86efac':btn.active?'#bfdbfe':'#d1dae8'}`, color: btn.gold?'#d97706':btn.bt&&btStatus==='connected'?'#16a34a':btn.active?'#0ea5e9':'#475569', padding:'5px 10px', borderRadius:20, fontSize:11, whiteSpace:'nowrap', cursor:'pointer', fontWeight:500 }}>
+            <button key={i} onClick={btn.action} style={{ display:'flex', alignItems:'center', gap:4, background: btn.gold?'#fffbeb': btn.bt&&btStatus==='connected'?'#dcfce7': btn.active?'#eff6ff':'#f1f5f9', border:`1px solid ${btn.gold?'#fde68a':btn.bt&&btStatus==='connected'?'#86efac':btn.active?'#bfdbfe':'#d1dae8'}`, color: btn.gold?'#d97706':btn.bt&&btStatus==='connected'?'#16a34a':btn.active?'#0ea5e9':'#475569', padding:'7px 14px', borderRadius:20, fontSize:13, whiteSpace:'nowrap', cursor:'pointer', fontWeight:700 }}>
               {btn.icon}{btn.label}
             </button>
           ))}
@@ -832,14 +885,16 @@ useEffect(() => {
           </button>
           <input ref={fileInputRef} type="file" accept="image/*,video/*,audio/*,.pdf,.doc,.docx,.txt" style={{ display:'none' }} onChange={e => handleFileAttach(e.target.files[0])} />
 
-          <input type="text" value={input}
+          <textarea value={input}
             onChange={e => { setInput(e.target.value); checkAdmin(e.target.value); }}
-            onKeyDown={e => e.key==='Enter' && !e.shiftKey && handleSend()}
+            onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
             placeholder={isActive ? t.placeholder : '⏸ IA désactivée — Accès admin requis'}
             disabled={!!aiPhase}
-            style={{ flex:1, border:'1.5px solid #d1dae8', borderRadius:24, padding:'11px 16px', fontSize:13, outline:'none', background:'white', color:'#1e293b', transition:'border-color .2s' }}
+            rows={1}
+            style={{ flex:1, border:'2px solid #d1dae8', borderRadius:20, padding:'12px 18px', fontSize:15, fontWeight:500, outline:'none', background:'white', color:'#1e293b', transition:'border-color .2s', resize:'none', minHeight:48, maxHeight:140, lineHeight:1.5, fontFamily:'inherit' }}
             onFocus={e => e.target.style.borderColor='#0ea5e9'}
             onBlur={e => e.target.style.borderColor='#d1dae8'}
+            onInput={e => { e.target.style.height = 'auto'; e.target.style.height = Math.min(e.target.scrollHeight, 140) + 'px'; }}
           />
           <button onClick={handleSend} disabled={(!input.trim()&&!attachedFile)||!!aiPhase} style={{ background:(input.trim()||attachedFile)?'#0ea5e9':'#e2e8f0', border:'none', borderRadius:'50%', width:42, height:42, display:'flex', alignItems:'center', justifyContent:'center', cursor:(input.trim()||attachedFile)?'pointer':'not-allowed', transition:'background .2s', flexShrink:0 }}>
             {aiPhase ? <div style={{ width:16, height:16, border:'2px solid white', borderTopColor:'transparent', borderRadius:'50%', animation:'spin 0.8s linear infinite' }} /> : <Send size={16} color="white" />}
@@ -847,7 +902,7 @@ useEffect(() => {
         </div>
 
         {/* Plan + branding */}
-        <div style={{ marginTop:6, display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:10, letterSpacing:1 }}>
+        <div style={{ marginTop:8, display:'flex', justifyContent:'space-between', alignItems:'center', fontSize:12, letterSpacing:1, fontWeight:700 }}>
           <span style={{ color:TIERS[plan].color, fontWeight:600 }}>{TIERS[plan].label} · {msgCount}/{TIERS[plan].limit===Infinity?'∞':TIERS[plan].limit}</span>
           {plan!=='ELITE' && <span style={{ color:'#cbd5e1' }}>NO KOMPLEX AI-PRODUCTOR</span>}
           <span style={{ color:'#cbd5e1' }}>© {new Date().getFullYear()} Lesly Tech LLC</span>
